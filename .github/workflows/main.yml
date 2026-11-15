@@ -1,0 +1,44 @@
+name: Build JARVIS TV APK
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      abi:
+        description: "ABI (пусто = обе; для Mi TV 4A обычно armeabi-v7a)"
+        required: false
+        default: ""
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unzip project
+        run: unzip -q JarvisTV.zip
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Build debug APK
+        working-directory: JarvisTV
+        run: |
+          ABI="${{ github.event.inputs.abi }}"
+          if [ -n "$ABI" ]; then EXTRA="-PabiOnly=$ABI"; else EXTRA=""; fi
+          gradle --no-daemon assembleDebug $EXTRA
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: JarvisTV-apk
+          path: JarvisTV/app/build/outputs/apk/debug/*.apk
